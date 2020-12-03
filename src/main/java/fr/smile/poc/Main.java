@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.integration.annotation.Transformer;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.context.IntegrationContextUtils;
 import org.springframework.integration.core.MessageSource;
@@ -16,7 +15,6 @@ import org.springframework.integration.dsl.Pollers;
 import org.springframework.integration.file.FileReadingMessageSource;
 import org.springframework.integration.file.FileWritingMessageHandler;
 import org.springframework.integration.file.transformer.FileToByteArrayTransformer;
-import org.springframework.integration.handler.GenericHandler;
 import org.springframework.integration.zip.splitter.UnZipResultSplitter;
 import org.springframework.integration.zip.transformer.UnZipTransformer;
 import org.springframework.integration.zip.transformer.ZipResultType;
@@ -118,6 +116,13 @@ public class Main {
         return IntegrationFlows //
                 .from(csvChannel()) //
                 .channel("out") //
+                .handle((payload, headers) -> {
+                    System.out.println("------------> logHandler");
+                    System.out.println("---> headers " + headers);
+                    System.out.println("---> payload " + new String((byte[]) payload, StandardCharsets.UTF_8));
+                    return payload;
+                }) //
+                .handle(targetDirectory()) //
                 .get();
     }
 
@@ -133,14 +138,4 @@ public class Main {
                 .get();
     }
 
-    @Bean
-    @Transformer(inputChannel = "out", outputChannel = IntegrationContextUtils.ERROR_CHANNEL_BEAN_NAME)
-    public GenericHandler<byte[]> logHandler() {
-        return (payload, headers) -> {
-            System.out.println("------------> logHandler");
-            System.out.println("---> headers " + headers);
-            System.out.println("---> payload " + new String(payload, StandardCharsets.UTF_8));
-            return payload;
-        };
-    }
 }
