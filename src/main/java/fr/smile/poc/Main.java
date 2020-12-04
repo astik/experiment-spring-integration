@@ -68,6 +68,11 @@ public class Main {
     }
 
     @Bean
+    public ExcelToCsvTransformer excelToCsvTransformer() {
+        return new ExcelToCsvTransformer();
+    }
+
+    @Bean
     DirectChannel inputByteArrayChannel() {
         log.trace("inputByteArrayChannel");
         return new DirectChannel();
@@ -82,6 +87,12 @@ public class Main {
     @Bean
     DirectChannel zipChannel() {
         log.trace("zipChannel");
+        return new DirectChannel();
+    }
+
+    @Bean
+    DirectChannel excelChannel() {
+        log.trace("excelChannel");
         return new DirectChannel();
     }
 
@@ -105,6 +116,8 @@ public class Main {
                             routerConfigurer.resolutionRequired(false);
                             routerConfigurer.channelMapping("csv", csvChannel());
                             routerConfigurer.channelMapping("zip", zipChannel());
+                            routerConfigurer.channelMapping("xls", excelChannel());
+                            routerConfigurer.channelMapping("xlsx", excelChannel());
                             routerConfigurer.defaultOutputChannel(IntegrationContextUtils.ERROR_CHANNEL_BEAN_NAME);
                         }) //
                 .get();
@@ -138,4 +151,13 @@ public class Main {
                 .get();
     }
 
+    @Bean
+    public IntegrationFlow processExcel() {
+        log.trace("processExcel");
+        return IntegrationFlows //
+                .from(excelChannel()) //
+                .transform(excelToCsvTransformer()) //
+                .channel(inputByteArrayChannel()) //
+                .get();
+    }
 }
