@@ -12,6 +12,7 @@ import org.springframework.integration.core.MessageSource;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlows;
 import org.springframework.integration.dsl.Pollers;
+import org.springframework.integration.file.FileHeaders;
 import org.springframework.integration.file.FileReadingMessageSource;
 import org.springframework.integration.file.FileWritingMessageHandler;
 import org.springframework.integration.file.transformer.FileToByteArrayTransformer;
@@ -111,7 +112,7 @@ public class Main {
         log.trace("dispatchByteArray");
         return IntegrationFlows //
                 .from("inputByteArrayChannel") //
-                .route("T(org.apache.commons.io.FilenameUtils).getExtension(headers['file_name'])",
+                .route("T(org.apache.commons.io.FilenameUtils).getExtension(headers['" + FileHeaders.FILENAME + "'])",
                         routerConfigurer -> {
                             routerConfigurer.resolutionRequired(false);
                             routerConfigurer.channelMapping("csv", csvChannel());
@@ -146,7 +147,7 @@ public class Main {
                 .from(zipChannel()) //
                 .transform(unZipTransformer()) //
                 .split(unZipSplitter()) //
-                .filter("!headers['file_name'].startsWith('.')") //
+                .filter("!headers['" + FileHeaders.FILENAME + "'].startsWith('.')") //
                 .channel(inputByteArrayChannel()) //
                 .get();
     }

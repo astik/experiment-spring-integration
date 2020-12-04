@@ -18,6 +18,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.integration.file.FileHeaders;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.integration.transformer.AbstractTransformer;
 import org.springframework.messaging.Message;
@@ -27,7 +28,7 @@ import org.springframework.messaging.MessagingException;
 public class ExcelToCsvTransformer extends AbstractTransformer {
     @Override
     protected Object doTransform(Message<?> message) {
-        String inputFileName = (String) message.getHeaders().get("file_name");
+        String inputFileName = (String) message.getHeaders().get(FileHeaders.FILENAME);
         String inputFileNameExtension = FilenameUtils.getExtension(inputFileName);
         Workbook workbook;
         switch (inputFileNameExtension) {
@@ -51,12 +52,11 @@ public class ExcelToCsvTransformer extends AbstractTransformer {
         } catch (IOException e) {
             throw new MessagingException(message, "The XlsxToCsv tranformation could'nt be done", e);
         }
-        String newFileName = (String) message.getHeaders().get("file_name");
-        newFileName = FilenameUtils.getBaseName(newFileName) + ".csv";
+        String newFileName = FilenameUtils.getBaseName(inputFileName) + ".csv";
         return MessageBuilder //
                 .withPayload(out.toByteArray())//
                 .copyHeaders(message.getHeaders())//
-                .setHeader("file_name", newFileName)//
+                .setHeader(FileHeaders.FILENAME, newFileName)//
                 .build();
 
     }
