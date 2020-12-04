@@ -7,13 +7,12 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>2.4.0</version>
-		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>fr.smile</groupId>
 	<artifactId>experiment-spring-integration</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>experiment-spring-integration</name>
-	<description>Demo project for Spring Boot</description>
+	<description>Experiment : spring-integration</description>
 
 	<properties>
 		<java.version>11</java.version>

@@ -1,6 +1,9 @@
 HELP.md
 target/
+data/
 !data/target/.keep
+!data/source/.keep
+!data/source-example
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
