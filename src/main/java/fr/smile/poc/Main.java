@@ -8,7 +8,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.context.IntegrationContextUtils;
-import org.springframework.integration.core.MessageSource;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlows;
 import org.springframework.integration.dsl.Pollers;
@@ -20,7 +19,6 @@ import org.springframework.integration.handler.GenericHandler;
 import org.springframework.integration.zip.splitter.UnZipResultSplitter;
 import org.springframework.integration.zip.transformer.UnZipTransformer;
 import org.springframework.integration.zip.transformer.ZipResultType;
-import org.springframework.messaging.MessageHandler;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,54 +34,6 @@ public class Main {
     public static final String OUTPUT_DIR = "data/target";
 
     @Bean
-    public MessageSource<File> sourceDirectory() {
-        log.trace("sourceDirectory");
-        FileReadingMessageSource messageSource = new FileReadingMessageSource();
-        messageSource.setDirectory(new File(INPUT_DIR));
-        return messageSource;
-    }
-
-    @Bean
-    public MessageHandler targetDirectory() {
-        log.trace("targetDirectory");
-        FileWritingMessageHandler handler = new FileWritingMessageHandler(new File(OUTPUT_DIR));
-        handler.setExpectReply(false);
-        return handler;
-    }
-
-    @Bean
-    public FileToByteArrayTransformer fileToByteArrayTransformer() {
-        return new FileToByteArrayTransformer();
-    }
-
-    @Bean
-    public UnZipTransformer unZipTransformer() {
-        UnZipTransformer unZipTransformer = new UnZipTransformer();
-        unZipTransformer.setZipResultType(ZipResultType.BYTE_ARRAY);
-        return unZipTransformer;
-    }
-
-    @Bean
-    public UnZipResultSplitter unZipSplitter() {
-        UnZipResultSplitter unZipResultSplitter = new UnZipResultSplitter();
-        return unZipResultSplitter;
-    }
-
-    @Bean
-    public ExcelToCsvTransformer excelToCsvTransformer() {
-        return new ExcelToCsvTransformer();
-    }
-
-    public GenericHandler<byte[]> logHandler() {
-        return (payload, headers) -> {
-            System.out.println("------------> logHandler");
-            System.out.println("---> headers " + headers);
-            System.out.println("---> payload " + new String(payload, StandardCharsets.UTF_8));
-            return payload;
-        };
-    };
-
-    @Bean
     DirectChannel inputByteArrayChannel() {
         log.trace("inputByteArrayChannel");
         return new DirectChannel();
@@ -92,9 +42,15 @@ public class Main {
     @Bean
     public IntegrationFlow loadFile() {
         log.trace("loadFile");
+        // source
+        FileReadingMessageSource sourceDirectory = new FileReadingMessageSource();
+        sourceDirectory.setDirectory(new File(INPUT_DIR));
+        // transformer
+        FileToByteArrayTransformer fileToByteArrayTransformer = new FileToByteArrayTransformer();
+        // flow
         return IntegrationFlows //
-                .from(sourceDirectory(), configurer -> configurer.poller(Pollers.fixedDelay(5000))) //
-                .transform(fileToByteArrayTransformer()) //
+                .from(sourceDirectory, configurer -> configurer.poller(Pollers.fixedDelay(5000))) //
+                .transform(fileToByteArrayTransformer) //
                 .channel(inputByteArrayChannel()) //
                 .get();
     }
@@ -107,43 +63,60 @@ public class Main {
                 .route("T(org.apache.commons.io.FilenameUtils).getExtension(headers['" + FileHeaders.FILENAME + "'])",
                         routerConfigurer -> {
                             routerConfigurer.resolutionRequired(false);
-                            routerConfigurer.subFlowMapping("csv", processCsv());
-                            routerConfigurer.subFlowMapping("zip", processZip());
-                            routerConfigurer.subFlowMapping("xls", processExcel());
-                            routerConfigurer.subFlowMapping("xlsx", processExcel());
+                            routerConfigurer.subFlowMapping("csv", csvSubFlow());
+                            routerConfigurer.subFlowMapping("zip", zipSubFlow());
+                            routerConfigurer.subFlowMapping("xls", excelSubFlow());
+                            routerConfigurer.subFlowMapping("xlsx", excelSubFlow());
                             routerConfigurer.defaultOutputChannel(IntegrationContextUtils.ERROR_CHANNEL_BEAN_NAME);
                         }) //
                 .get();
     }
 
-    @Bean
-    public IntegrationFlow processCsv() {
-        log.trace("processCsv");
+    private IntegrationFlow csvSubFlow() {
+        log.trace("csvSubFlow");
+        // log handler
+        GenericHandler<byte[]> logHandler = (payload, headers) -> {
+            System.out.println("------------> logHandler");
+            System.out.println("---> headers " + headers);
+            System.out.println("---> payload " + new String(payload, StandardCharsets.UTF_8));
+            return payload;
+        };
+        // output
+        FileWritingMessageHandler targetDirectoryHandler = new FileWritingMessageHandler(new File(OUTPUT_DIR));
+        targetDirectoryHandler.setExpectReply(false);
+        // flow
         return mapping -> {
             mapping //
-                    .handle(logHandler()) //
-                    .handle(targetDirectory());
+                    .handle(logHandler) //
+                    .handle(targetDirectoryHandler);
         };
     }
 
-    @Bean
-    public IntegrationFlow processZip() {
-        log.trace("processZip");
+    private IntegrationFlow zipSubFlow() {
+        log.trace("zipSubFlow");
+        // transformer
+        UnZipTransformer unZipTransformer = new UnZipTransformer();
+        unZipTransformer.setZipResultType(ZipResultType.BYTE_ARRAY);
+        // splitter
+        UnZipResultSplitter unZipSplitter = new UnZipResultSplitter();
+        // flow
         return mapping -> {
             mapping //
-                    .transform(unZipTransformer()) //
-                    .split(unZipSplitter()) //
+                    .transform(unZipTransformer) //
+                    .split(unZipSplitter) //
                     .filter("!headers['" + FileHeaders.FILENAME + "'].startsWith('.')") //
                     .channel(inputByteArrayChannel());
         };
     }
 
-    @Bean
-    public IntegrationFlow processExcel() {
-        log.trace("processExcel");
+    private IntegrationFlow excelSubFlow() {
+        log.trace("excelSubFlow");
+        // transformer
+        ExcelToCsvTransformer excelToCsvTransformer = new ExcelToCsvTransformer();
+        // flow
         return mapping -> {
             mapping //
-                    .transform(excelToCsvTransformer()) //
+                    .transform(excelToCsvTransformer) //
                     .channel(inputByteArrayChannel());
         };
     }
