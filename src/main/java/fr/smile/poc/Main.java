@@ -16,6 +16,7 @@ import org.springframework.integration.file.FileHeaders;
 import org.springframework.integration.file.FileReadingMessageSource;
 import org.springframework.integration.file.FileWritingMessageHandler;
 import org.springframework.integration.file.transformer.FileToByteArrayTransformer;
+import org.springframework.integration.handler.GenericHandler;
 import org.springframework.integration.zip.splitter.UnZipResultSplitter;
 import org.springframework.integration.zip.transformer.UnZipTransformer;
 import org.springframework.integration.zip.transformer.ZipResultType;
@@ -73,27 +74,18 @@ public class Main {
         return new ExcelToCsvTransformer();
     }
 
+    public GenericHandler<byte[]> logHandler() {
+        return (payload, headers) -> {
+            System.out.println("------------> logHandler");
+            System.out.println("---> headers " + headers);
+            System.out.println("---> payload " + new String(payload, StandardCharsets.UTF_8));
+            return payload;
+        };
+    };
+
     @Bean
     DirectChannel inputByteArrayChannel() {
         log.trace("inputByteArrayChannel");
-        return new DirectChannel();
-    }
-
-    @Bean
-    DirectChannel csvChannel() {
-        log.trace("csvChannel");
-        return new DirectChannel();
-    }
-
-    @Bean
-    DirectChannel zipChannel() {
-        log.trace("zipChannel");
-        return new DirectChannel();
-    }
-
-    @Bean
-    DirectChannel excelChannel() {
-        log.trace("excelChannel");
         return new DirectChannel();
     }
 
@@ -115,10 +107,10 @@ public class Main {
                 .route("T(org.apache.commons.io.FilenameUtils).getExtension(headers['" + FileHeaders.FILENAME + "'])",
                         routerConfigurer -> {
                             routerConfigurer.resolutionRequired(false);
-                            routerConfigurer.channelMapping("csv", csvChannel());
-                            routerConfigurer.channelMapping("zip", zipChannel());
-                            routerConfigurer.channelMapping("xls", excelChannel());
-                            routerConfigurer.channelMapping("xlsx", excelChannel());
+                            routerConfigurer.subFlowMapping("csv", processCsv());
+                            routerConfigurer.subFlowMapping("zip", processZip());
+                            routerConfigurer.subFlowMapping("xls", processExcel());
+                            routerConfigurer.subFlowMapping("xlsx", processExcel());
                             routerConfigurer.defaultOutputChannel(IntegrationContextUtils.ERROR_CHANNEL_BEAN_NAME);
                         }) //
                 .get();
@@ -127,37 +119,32 @@ public class Main {
     @Bean
     public IntegrationFlow processCsv() {
         log.trace("processCsv");
-        return IntegrationFlows //
-                .from(csvChannel()) //
-                .handle((payload, headers) -> {
-                    System.out.println("------------> logHandler");
-                    System.out.println("---> headers " + headers);
-                    System.out.println("---> payload " + new String((byte[]) payload, StandardCharsets.UTF_8));
-                    return payload;
-                }) //
-                .handle(targetDirectory()) //
-                .get();
+        return mapping -> {
+            mapping //
+                    .handle(logHandler()) //
+                    .handle(targetDirectory());
+        };
     }
 
     @Bean
     public IntegrationFlow processZip() {
         log.trace("processZip");
-        return IntegrationFlows //
-                .from(zipChannel()) //
-                .transform(unZipTransformer()) //
-                .split(unZipSplitter()) //
-                .filter("!headers['" + FileHeaders.FILENAME + "'].startsWith('.')") //
-                .channel(inputByteArrayChannel()) //
-                .get();
+        return mapping -> {
+            mapping //
+                    .transform(unZipTransformer()) //
+                    .split(unZipSplitter()) //
+                    .filter("!headers['" + FileHeaders.FILENAME + "'].startsWith('.')") //
+                    .channel(inputByteArrayChannel());
+        };
     }
 
     @Bean
     public IntegrationFlow processExcel() {
         log.trace("processExcel");
-        return IntegrationFlows //
-                .from(excelChannel()) //
-                .transform(excelToCsvTransformer()) //
-                .channel(inputByteArrayChannel()) //
-                .get();
+        return mapping -> {
+            mapping //
+                    .transform(excelToCsvTransformer()) //
+                    .channel(inputByteArrayChannel());
+        };
     }
 }
