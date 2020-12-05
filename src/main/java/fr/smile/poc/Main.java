@@ -111,7 +111,7 @@ public class Main {
     public IntegrationFlow dispatchByteArray() {
         log.trace("dispatchByteArray");
         return IntegrationFlows //
-                .from("inputByteArrayChannel") //
+                .from(inputByteArrayChannel()) //
                 .route("T(org.apache.commons.io.FilenameUtils).getExtension(headers['" + FileHeaders.FILENAME + "'])",
                         routerConfigurer -> {
                             routerConfigurer.resolutionRequired(false);
