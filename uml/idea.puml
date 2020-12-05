@@ -1,0 +1,43 @@
+@startuml
+
+!include ./EIP-PlantUML.puml
+
+MsgChannel(errorChannel, "Error channel")
+
+PollingConsumer(source, "Source folder")
+MessageTranslator(fileToByteArrayTransformer, "File to byte array")
+MsgChannel(inputByteArrayChannel, "Input byte array")
+
+Send(source, fileToByteArrayTransformer)
+Send(fileToByteArrayTransformer, inputByteArrayChannel)
+
+MessageRouter(fileExtensionRouter, "Route on file type")
+Send(inputByteArrayChannel, fileExtensionRouter)
+
+MsgChannel(csvChannel, "CSV channel")
+MsgChannel(zipChannel, "ZIP channel")
+MsgChannel(excelChannel, "Excel channel")
+Send(fileExtensionRouter, csvChannel): "CSV"
+Send(fileExtensionRouter, zipChannel): "ZIP"
+Send(fileExtensionRouter, excelChannel): "XLS"
+Send(fileExtensionRouter, excelChannel): "XLSX"
+Send(fileExtensionRouter, errorChannel): "default"
+
+Filter(logFIlter, "Log CSV content")
+MessageEndpoint(target, "Dump CSV content")
+Send(csvChannel, logFIlter)
+Send(logFIlter, target)
+
+MessageTranslator(unZipTransformer, "Unzip")
+Splitter(unZipSplitter, "Unzip splitter")
+MessageFilter(filterFileNameStartingWithDot, "Remove filename starting with dot")
+Send(zipChannel, unZipTransformer)
+Send(unZipTransformer, unZipSplitter)
+Send(unZipSplitter, filterFileNameStartingWithDot)
+Send(filterFileNameStartingWithDot, inputByteArrayChannel)
+
+MessageTranslator(excelToCsvTransformer, "Excel to CSV")
+Send(excelChannel, excelToCsvTransformer)
+Send(excelToCsvTransformer, inputByteArrayChannel)
+
+@enduml

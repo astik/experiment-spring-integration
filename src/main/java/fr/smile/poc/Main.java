@@ -129,7 +129,6 @@ public class Main {
         log.trace("processCsv");
         return IntegrationFlows //
                 .from(csvChannel()) //
-                .channel("out") //
                 .handle((payload, headers) -> {
                     System.out.println("------------> logHandler");
                     System.out.println("---> headers " + headers);
