@@ -30,9 +30,20 @@ Also, you should notice some new files into `data.target`.
 ## Integration graph
 
 Spring integration allows exposing graph structure:
+
 - through HTTP: http://localhost:9001/actuator/integrationgraph
-- through JMX: check *jConsole* : `MBeans > org.springframework.boot > Endpoint > Integrationgarph`
+- through JMX: check _jConsole_ : `MBeans > org.springframework.boot > Endpoint > Integrationgarph`
 
 Then, data can be used to create a graph visualization.
-(Legends says that [Spring-flo](https://github.com/spring-projects/spring-flo) could be used with its *Angular-1.x* branch but i couldn't make it work)
+(Legends says that [Spring-flo](https://github.com/spring-projects/spring-flo) could be used with its _Angular-1.x_ branch but i couldn't make it work)
 
+## Metrics
+
+Metrics are exposed thanks to [micrometer](https://micrometer.io/)'s meter:
+
+- through HTTP:
+  - http://localhost:9001/actuator/metrics/spring.integration.channels
+  - http://localhost:9001/actuator/metrics/spring.integration.handlers
+  - http://localhost:9001/actuator/metrics/spring.integration.receive
+  - http://localhost:9001/actuator/metrics/spring.integration.sources
+- through JMX: check _jConsole_ : `MBeans > metrics`, there are gauges, meters and timers (with interesting statistics)

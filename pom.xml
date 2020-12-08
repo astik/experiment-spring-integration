@@ -50,7 +50,7 @@
 			<version>1.8</version>
 		</dependency>
 
-		<!-- ACTUATOR -->
+		<!-- ACTUATOR AND METRICS -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -58,6 +58,10 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-jmx</artifactId>
 		</dependency>
 
 		<!-- INTEGRATION -->

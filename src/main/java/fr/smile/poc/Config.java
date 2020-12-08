@@ -19,6 +19,8 @@ import org.springframework.integration.zip.splitter.UnZipResultSplitter;
 import org.springframework.integration.zip.transformer.UnZipTransformer;
 import org.springframework.integration.zip.transformer.ZipResultType;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -27,6 +29,11 @@ public class Config {
 
 	public static final String INPUT_DIR = "data/source";
 	public static final String OUTPUT_DIR = "data/target";
+
+	@Bean
+	public static MeterRegistry meterRegistry() {
+		return new SimpleMeterRegistry();
+	}
 
 	@Bean
 	DirectChannel inputByteArrayChannel() {
