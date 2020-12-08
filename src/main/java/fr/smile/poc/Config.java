@@ -1,11 +1,10 @@
 package fr.smile.poc;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.context.IntegrationContextUtils;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlows;
@@ -27,18 +26,17 @@ import lombok.extern.slf4j.Slf4j;
 @Configuration
 public class Config {
 
-	public static final String INPUT_DIR = "data/source";
-	public static final String OUTPUT_DIR = "data/target";
+	private static final String INPUT_BYTE_ARRAY_CHANNEL = "inputByteArrayChannel";
+
+	@Value("${poc.input-dir}")
+	private String inputDirectory;
+
+	@Value("${poc.output-dir}")
+	private String outputDirectory;
 
 	@Bean
-	public static MeterRegistry meterRegistry() {
+	public MeterRegistry meterRegistry() {
 		return new SimpleMeterRegistry();
-	}
-
-	@Bean
-	DirectChannel inputByteArrayChannel() {
-		log.trace("inputByteArrayChannel");
-		return new DirectChannel();
 	}
 
 	@Bean
@@ -46,22 +44,17 @@ public class Config {
 		log.trace("loadFile");
 		// source
 		FileReadingMessageSource sourceDirectory = new FileReadingMessageSource();
-		sourceDirectory.setDirectory(new File(INPUT_DIR));
+		sourceDirectory.setDirectory(new File(inputDirectory));
 		// transformer
 		FileToByteArrayTransformer fileToByteArrayTransformer = new FileToByteArrayTransformer();
+		// log handler
+		GenericHandler<byte[]> logHandler = new LogHandler("from input", false);
 		// flow
 		return IntegrationFlows //
 				.from(sourceDirectory, configurer -> configurer.poller(Pollers.fixedDelay(5000))) //
 				.transform(fileToByteArrayTransformer) //
-				.channel(inputByteArrayChannel()) //
-				.get();
-	}
-
-	@Bean
-	public IntegrationFlow dispatchByteArray() {
-		log.trace("dispatchByteArray");
-		return IntegrationFlows //
-				.from(inputByteArrayChannel()) //
+				.channel(INPUT_BYTE_ARRAY_CHANNEL) //
+				.handle(logHandler) //
 				.route("T(org.apache.commons.io.FilenameUtils).getExtension(headers['" + FileHeaders.FILENAME + "'])",
 						routerConfigurer -> {
 							routerConfigurer.resolutionRequired(false);
@@ -77,14 +70,9 @@ public class Config {
 	private IntegrationFlow csvSubFlow() {
 		log.trace("csvSubFlow");
 		// log handler
-		GenericHandler<byte[]> logHandler = (payload, headers) -> {
-			System.out.println("------------> logHandler");
-			System.out.println("---> headers " + headers);
-			System.out.println("---> payload " + new String(payload, StandardCharsets.UTF_8));
-			return payload;
-		};
+		GenericHandler<byte[]> logHandler = new LogHandler("from csv", true);
 		// output
-		FileWritingMessageHandler targetDirectoryHandler = new FileWritingMessageHandler(new File(OUTPUT_DIR));
+		FileWritingMessageHandler targetDirectoryHandler = new FileWritingMessageHandler(new File(outputDirectory));
 		targetDirectoryHandler.setExpectReply(false);
 		// flow
 		return mapping -> {
@@ -107,7 +95,7 @@ public class Config {
 					.transform(unZipTransformer) //
 					.split(unZipSplitter) //
 					.filter("!headers['" + FileHeaders.FILENAME + "'].startsWith('.')") //
-					.channel(inputByteArrayChannel());
+					.channel(INPUT_BYTE_ARRAY_CHANNEL);
 		};
 	}
 
@@ -119,7 +107,7 @@ public class Config {
 		return mapping -> {
 			mapping //
 					.transform(excelToCsvTransformer) //
-					.channel(inputByteArrayChannel());
+					.channel(INPUT_BYTE_ARRAY_CHANNEL);
 		};
 	}
 }
