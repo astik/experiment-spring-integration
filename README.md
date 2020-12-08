@@ -26,3 +26,13 @@ mvn spring-boot:run
 Once started, move a file from `data/source-example` to `data/source`.
 You should see some log about what is going on in the system.
 Also, you should notice some new files into `data.target`.
+
+## Integration graph
+
+Spring integration allows exposing graph structure:
+- through HTTP: http://localhost:9001/actuator/integrationgraph
+- through JMX: check *jConsole* : `MBeans > org.springframework.boot > Endpoint > Integrationgarph`
+
+Then, data can be used to create a graph visualization.
+(Legends says that [Spring-flo](https://github.com/spring-projects/spring-flo) could be used with its *Angular-1.x* branch but i couldn't make it work)
+
