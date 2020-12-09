@@ -25,7 +25,7 @@ mvn spring-boot:run
 
 Once started, move a file from `data/source-example` to `data/source`.
 You should see some log about what is going on in the system.
-Also, you should notice some new files into `data.target`.
+Also, you should notice some new files into `data/target`.
 
 ## Integration graph
 

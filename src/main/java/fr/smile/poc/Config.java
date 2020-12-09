@@ -1,6 +1,7 @@
 package fr.smile.poc;
 
 import java.io.File;
+import java.util.Map.Entry;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +38,19 @@ public class Config {
 	@Bean
 	public MeterRegistry meterRegistry() {
 		return new SimpleMeterRegistry();
+	}
+
+	@Bean
+	public IntegrationFlow errorMonitoring() {
+		return IntegrationFlows //
+				.from(IntegrationContextUtils.ERROR_CHANNEL_BEAN_NAME) //
+				.handle(message -> {
+					System.out.println("------------> got a message from error");
+					System.out.println("---> headers");
+					for (Entry<String, Object> headerEntry : message.getHeaders().entrySet()) {
+						System.out.println("     " + headerEntry.getKey() + "=" + headerEntry.getValue());
+					}
+				}).get();
 	}
 
 	@Bean

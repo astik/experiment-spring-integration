@@ -25,9 +25,13 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHandlingException;
 import org.springframework.messaging.MessagingException;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class ExcelToCsvTransformer extends AbstractTransformer {
 	@Override
 	protected Object doTransform(Message<?> message) {
+		log.trace("doTransform");
 		String inputFileName = (String) message.getHeaders().get(FileHeaders.FILENAME);
 		String inputFileNameExtension = FilenameUtils.getExtension(inputFileName);
 		Workbook workbook;
@@ -62,15 +66,13 @@ public class ExcelToCsvTransformer extends AbstractTransformer {
 	}
 
 	private XSSFWorkbook getXSSFWorkbook(Message<?> message) {
+		log.trace("getXSSFWorkbook");
 		try {
 			XSSFWorkbook workBook;
 			final Object payload = message.getPayload();
 			if (payload instanceof File) {
 				final File filePayload = (File) payload;
 				workBook = new XSSFWorkbook(filePayload);
-			} else if (payload instanceof InputStream) {
-				InputStream inputStream = (InputStream) payload;
-				workBook = new XSSFWorkbook(inputStream);
 			} else if (payload instanceof byte[]) {
 				InputStream inputStream = new ByteArrayInputStream((byte[]) payload);
 				workBook = new XSSFWorkbook(inputStream);
@@ -87,6 +89,7 @@ public class ExcelToCsvTransformer extends AbstractTransformer {
 	}
 
 	private HSSFWorkbook getHSSFWorkbook(Message<?> message) {
+		log.trace("getHSSFWorkbook");
 		try {
 			HSSFWorkbook workBook;
 			final Object payload = message.getPayload();
@@ -95,9 +98,6 @@ public class ExcelToCsvTransformer extends AbstractTransformer {
 				try (InputStream is = new FileInputStream(filePayload)) {
 					workBook = new HSSFWorkbook(is);
 				}
-			} else if (payload instanceof InputStream) {
-				InputStream inputStream = (InputStream) payload;
-				workBook = new HSSFWorkbook(inputStream);
 			} else if (payload instanceof byte[]) {
 				InputStream inputStream = new ByteArrayInputStream((byte[]) payload);
 				workBook = new HSSFWorkbook(inputStream);
@@ -114,6 +114,7 @@ public class ExcelToCsvTransformer extends AbstractTransformer {
 	}
 
 	private void writeWorkbookAsCsvToOutputStream(Workbook workbook, OutputStream out) throws IOException {
+		log.trace("writeWorkbookAsCsvToOutputStream");
 		try (CSVPrinter csvPrinter = new CSVPrinter(new OutputStreamWriter(out), CSVFormat.DEFAULT)) {
 			Sheet sheet = workbook.getSheetAt(0); // Sheet #0 in this example
 			for (Row row : sheet) {
