@@ -27,6 +27,21 @@ Once started, move a file from `data/source-example` to `data/source`.
 You should see some log about what is going on in the system.
 Also, you should notice some new files into `data/target`.
 
+## Features
+
+- [x] java: works with spring
+- [x] endpoint: read file from file system
+- [x] transformer: file to byte array
+- [x] transformer: Zip archive to file entries
+- [x] transformer: Excel to CSV
+- [ ] transformer: PGP decryption
+- [x] handler: basic data dump on System.out
+- [x] error handling: explicit error channel
+- [ ] error handling: forward all exception to default error channel
+- [ ] error handling: dead letter queue redirect to error channel
+- [x] monitoring: expose metrics
+- [x] maintenance: expose graph structure
+
 ## Integration graph
 
 Spring integration allows exposing graph structure:
